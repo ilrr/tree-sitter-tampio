@@ -11,13 +11,13 @@ module.exports = grammar({
   name: "tampio",
 
   // externals: $ => [$.block_start, $.block_end],
-  externals: $ => [$._indent, $._dedent, $._newline, ":", $._colon_end, $._ws, $.comment],
+  externals: $ => [$._indent, $._dedent, $._newline, ":", $._colon_end, $._ws, $.comment, $.opening_bracket, $.closing_bracket, $.opening_quote, $.closing_quote, $.string_body],
 
   // extras: $ => [/[\s]/],
   // extras: $ => [" ", "\t"],
   extras: $ => [$._ws, $.comment],
   // inline: $ => [$.ledger],
-  conflicts: $ => [[$.account_map], [$.ledger]],
+  conflicts: $ => [[$.account_map], [$.ledger], [$.budget]],
 
   rules: {
     // TODO: add the actual grammar rules
@@ -31,10 +31,14 @@ module.exports = grammar({
     section: $ => choice(
       seq(alias($.account_map_heading, $.section_heading), $._newline, $.account_map),
       seq(alias($.ledger_heading, $.section_heading), $._newline, $.ledger),
+      seq(alias($.budget_heading, $.section_heading), $._newline, $.budget)
     ),
 
     account_map: $ => list2($, alias($.top_level_account, $.account)),
     account_map_heading: $ => seq("§", alias(token(prec(1, new RustRegex("(?i)tilikartta"))), $.section_name)),
+
+    budget: $ => list2($, $.entry),
+    budget_heading: $ => seq("§", alias(token(prec(1, new RustRegex("(?i)talousarvio|budjetti"))), $.section_name)),
 
     top_level_account: $ => seq(
       optional(
@@ -134,32 +138,33 @@ module.exports = grammar({
 
     // comment: $ => /--.*\n/,
 
-    string: $ => new RustRegex(
-      "\"[^\"]*\"|'[^']*'|\\u{00AB}[^\\u{00AB}]*\\u{00AB}|\\u{2018}[^\\u{2018}]*\\u{2018}|\\u{201B}[^\\u{201B}]*\\u{201B}|\\u{201C}[^\\u{201C}]*\\u{201C}|\\u{201F}[^\\u{201F}]*\\u{201F}|\\u{2039}[^\\u{2039}]*\\u{2039}|\\u{2E02}[^\\u{2E02}]*\\u{2E02}|\\u{2E04}[^\\u{2E04}]*\\u{2E04}|\\u{2E09}[^\\u{2E09}]*\\u{2E09}|\\u{2E0C}[^\\u{2E0C}]*\\u{2E0C}|\\u{2E1C}[^\\u{2E1C}]*\\u{2E1C}|\\u{2E20}[^\\u{2E20}]*\\u{2E20}|\\u{00BB}[^\\u{00BB}]*\\u{00BB}|\\u{2019}[^\\u{2019}]*\\u{2019}|\\u{201D}[^\\u{201D}]*\\u{201D}|\\u{203A}[^\\u{203A}]*\\u{203A}|\\u{2E03}[^\\u{2E03}]*\\u{2E03}|\\u{2E05}[^\\u{2E05}]*\\u{2E05}|\\u{2E0A}[^\\u{2E0A}]*\\u{2E0A}|\\u{2E0D}[^\\u{2E0D}]*\\u{2E0D}|\\u{2E1D}[^\\u{2E1D}]*\\u{2E1D}|\\u{2E21}[^\\u{2E21}]*\\u{2E21}"
-    ),
+    string: $ => seq($.opening_quote, optional($.string_body), $.closing_quote),
+    // string: $ => new RustRegex(
+    //   "\"[^\"]*\"|'[^']*'|\\u{00AB}[^\\u{00AB}]*\\u{00AB}|\\u{2018}[^\\u{2018}]*\\u{2018}|\\u{201B}[^\\u{201B}]*\\u{201B}|\\u{201C}[^\\u{201C}]*\\u{201C}|\\u{201F}[^\\u{201F}]*\\u{201F}|\\u{2039}[^\\u{2039}]*\\u{2039}|\\u{2E02}[^\\u{2E02}]*\\u{2E02}|\\u{2E04}[^\\u{2E04}]*\\u{2E04}|\\u{2E09}[^\\u{2E09}]*\\u{2E09}|\\u{2E0C}[^\\u{2E0C}]*\\u{2E0C}|\\u{2E1C}[^\\u{2E1C}]*\\u{2E1C}|\\u{2E20}[^\\u{2E20}]*\\u{2E20}|\\u{00BB}[^\\u{00BB}]*\\u{00BB}|\\u{2019}[^\\u{2019}]*\\u{2019}|\\u{201D}[^\\u{201D}]*\\u{201D}|\\u{203A}[^\\u{203A}]*\\u{203A}|\\u{2E03}[^\\u{2E03}]*\\u{2E03}|\\u{2E05}[^\\u{2E05}]*\\u{2E05}|\\u{2E0A}[^\\u{2E0A}]*\\u{2E0A}|\\u{2E0D}[^\\u{2E0D}]*\\u{2E0D}|\\u{2E1D}[^\\u{2E1D}]*\\u{2E1D}|\\u{2E21}[^\\u{2E21}]*\\u{2E21}"
+    // ),
   }
 });
 
 
 
 function block($, b) {
-  const block_delimeters = ["()", "[]", "{}", /*
-    "\u0F3A\u0F3B", "\u0F3C\u0F3D", "\u169B\u169C",
-    "\u2045\u2046", "\u2768\u2769", "\u276A\u276B",
-    "\u276C\u276D", "\u276E\u276F", "\u2770\u2771",
-    "\u2772\u2773", "\u2774\u2775", "\u27E6\u27E7",
-    "\u27E8\u27E9", "\u27EA\u27EB", "\u2983\u2984",
-    "\u2985\u2986", "\u2987\u2988", "\u2989\u298A",
-    "\u298B\u298C", "\u298D\u298E", "\u298F\u2990",
-    "\u2991\u2992", "\u2993\u2994", "\u2995\u2996",
-    "\u2997\u2998", "\u29D8\u29D9", "\u29DA\u29DB",
-    "\u29FC\u29FD", "\u2E22\u2E23", "\u2E24\u2E25",
-    "\u2E26\u2E27", "\u2E28\u2E29", "\u3008\u3009",
-    "\u300A\u300B", "\u300C\u300D", "\u300E\u300F",
-    "\u3010\u3011", "\u3014\u3015", "\u3016\u3017",
-    "\u3018\u3019", "\u301A\u301B", */
-    [$._indent, $._dedent], [":", $._colon_end]];
-  const bodies = block_delimeters.map(d => seq(d[0], b, d[1]));
+  /*  const block_delimeters = ["()", "[]", "{}", /*
+      "\u0F3A\u0F3B", "\u0F3C\u0F3D", "\u169B\u169C",
+      "\u2045\u2046", "\u2768\u2769", "\u276A\u276B",
+      "\u276C\u276D", "\u276E\u276F", "\u2770\u2771",
+      "\u2772\u2773", "\u2774\u2775", "\u27E6\u27E7",
+      "\u27E8\u27E9", "\u27EA\u27EB", "\u2983\u2984",
+      "\u2985\u2986", "\u2987\u2988", "\u2989\u298A",
+      "\u298B\u298C", "\u298D\u298E", "\u298F\u2990",
+      "\u2991\u2992", "\u2993\u2994", "\u2995\u2996",
+      "\u2997\u2998", "\u29D8\u29D9", "\u29DA\u29DB",
+      "\u29FC\u29FD", "\u2E22\u2E23", "\u2E24\u2E25",
+      "\u2E26\u2E27", "\u2E28\u2E29", "\u3008\u3009",
+      "\u300A\u300B", "\u300C\u300D", "\u300E\u300F",
+      "\u3010\u3011", "\u3014\u3015", "\u3016\u3017",
+      "\u3018\u3019", "\u301A\u301B", */
+  const block_delimiters = [[$.opening_bracket, $.closing_bracket], [$._indent, $._dedent], [":", $._colon_end]];
+  const bodies = block_delimiters.map(d => seq(d[0], b, d[1]));
   return choice(...bodies)
 }
 

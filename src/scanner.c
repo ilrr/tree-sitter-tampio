@@ -6,10 +6,10 @@
 #include "tree_sitter/parser.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wctype.h>
+// #include <wctype.h>
 
 #define INDENT_STACK_SIZE 128
 #define BRACKRT_STACK_SIZE 128
@@ -22,7 +22,12 @@ enum TokenType {
     COLON,
     COLON_END,
     WHITESPACE,
-    COMMENT
+    COMMENT,
+    OPENING_BRACKET,
+    CLOSING_BRACKET,
+    OPENING_QUOTE,
+    CLOSING_QUOTE,
+    STRING_BODY
 };
 
 // State: bracket stack, indent levels, pending colons/dedents
@@ -34,6 +39,7 @@ typedef struct {
     uint8_t indent_count;
     uint8_t pending_dedents;
     uint8_t colon_count;
+    uint8_t quote;
 
 } Scanner;
 
@@ -253,6 +259,61 @@ uint8_t bracket_id(uint32_t ch) {
     }
 }
 
+uint8_t quote_id(uint32_t ch) {
+    switch (ch) {
+    case '"':
+        return 1;
+    case '\'':
+        return 2;
+    case 0x00AB:
+        return 3; // «
+    case 0x2018:
+        return 4; // ‘
+    case 0x201B:
+        return 5; // ‛
+    case 0x201C:
+        return 6; // “
+    case 0x201F:
+        return 7; // ‟
+    case 0x2039:
+        return 8; // ‹
+    case 0x2E02:
+        return 9; // ⸂
+    case 0x2E04:
+        return 10; // ⸄
+    case 0x2E09:
+        return 11; // ⸉
+    case 0x2E0C:
+        return 12; // ⸌
+    case 0x2E1C:
+        return 13; // ⸜
+    case 0x2E20:
+        return 14; // ⸠
+    case 0x00BB:
+        return 15; // »
+    case 0x2019:
+        return 16; // ’
+    case 0x201D:
+        return 17; // ”
+    case 0x203A:
+        return 18; // ›
+    case 0x2E03:
+        return 19; // ⸃
+    case 0x2E05:
+        return 20; // ⸅
+    case 0x2E0A:
+        return 21; // ⸊
+    case 0x2E0D:
+        return 22; // ⸍
+    case 0x2E1D:
+        return 23; // ⸝
+    case 0x2E21:
+        return 24; // ⸡
+    default:
+        return 0;
+    }
+}
+
 // Lifecycle
 void *tree_sitter_tampio_external_scanner_create() {
     Scanner *s = calloc(1, sizeof(Scanner));
@@ -269,50 +330,57 @@ void tree_sitter_tampio_external_scanner_reset(void *p) {
 }
 
 unsigned tree_sitter_tampio_external_scanner_serialize(void *p, char *buffer) {
-  Scanner *scanner = (Scanner *)p;
-  unsigned i = 0;
+    Scanner *scanner = (Scanner *)p;
+    unsigned i = 0;
 
-  buffer[i++] = scanner->indent_count;
-  memcpy(&buffer[i], scanner->indent_stack, scanner->indent_count);
-  i += scanner->indent_count;
+    buffer[i++] = scanner->indent_count;
+    memcpy(&buffer[i], scanner->indent_stack, scanner->indent_count);
+    i += scanner->indent_count;
 
-  buffer[i++] = scanner->pending_dedents;
-  buffer[i++] = scanner->colon_count;
+    buffer[i++] = scanner->pending_dedents;
+    buffer[i++] = scanner->colon_count;
+    buffer[i++] = scanner->quote;
 
-  buffer[i++] = scanner->bracket_count;
-  memcpy(&buffer[i], scanner->bracket_stack, scanner->bracket_count);
-  i += scanner->bracket_count;
+    buffer[i++] = scanner->bracket_count;
+    memcpy(&buffer[i], scanner->bracket_stack, scanner->bracket_count);
+    i += scanner->bracket_count;
 
-  return i;
+    return i;
 }
 
-void tree_sitter_tampio_external_scanner_deserialize(void *p, const char *buffer, unsigned length) {
-  Scanner *scanner = (Scanner *)p;
-  unsigned i = 0;
+void tree_sitter_tampio_external_scanner_deserialize(void *p,
+                                                     const char *buffer,
+                                                     unsigned length) {
+    Scanner *scanner = (Scanner *)p;
+    unsigned i = 0;
 
-  if (length < 3) {
-    scanner->indent_count = 0;
-    scanner->bracket_count = 0;
-    scanner->pending_dedents = 0;
-    scanner->colon_count = 0;
-    return;
-  }
+    if (length < 3) {
+        scanner->indent_count = 0;
+        scanner->bracket_count = 0;
+        scanner->pending_dedents = 0;
+        scanner->colon_count = 0;
+        scanner->quote = 0;
+        return;
+    }
 
-  scanner->indent_count = buffer[i++];
-  if (scanner->indent_count > INDENT_STACK_SIZE) scanner->indent_count = 0;
-  memcpy(scanner->indent_stack, &buffer[i], scanner->indent_count);
-  i += scanner->indent_count;
+    scanner->indent_count = buffer[i++];
+    if (scanner->indent_count > INDENT_STACK_SIZE)
+        scanner->indent_count = 0;
+    memcpy(scanner->indent_stack, &buffer[i], scanner->indent_count);
+    i += scanner->indent_count;
 
-  scanner->pending_dedents = buffer[i++];
-  scanner->colon_count = buffer[i++];
+    scanner->pending_dedents = buffer[i++];
+    scanner->colon_count = buffer[i++];
+    scanner->quote = buffer[i++];
 
-  scanner->bracket_count = buffer[i++];
-  if (scanner->bracket_count > BRACKRT_STACK_SIZE) scanner->bracket_count = 0;
-  memcpy(scanner->bracket_stack, &buffer[i], scanner->bracket_count);
+    scanner->bracket_count = buffer[i++];
+    if (scanner->bracket_count > BRACKRT_STACK_SIZE)
+        scanner->bracket_count = 0;
+    memcpy(scanner->bracket_stack, &buffer[i], scanner->bracket_count);
 }
 
-
-// unsigned tree_sitter_tampio_external_scanner_serialize(void *p, char *buffer) {
+// unsigned tree_sitter_tampio_external_scanner_serialize(void *p, char *buffer)
+// {
 //     Scanner *scanner = (Scanner *)p;
 //     // fprintf(stderr, "serialize\n");
 //     unsigned size = scanner->indent_count + 4;
@@ -320,8 +388,9 @@ void tree_sitter_tampio_external_scanner_deserialize(void *p, const char *buffer
 //     buffer[scanner->indent_count + 1] = scanner->indent_count;
 //     buffer[scanner->indent_count + 2] = scanner->pending_dedents;
 //     buffer[scanner->indent_count + 3] = scanner->colon_count;
-//     memcpy(buffer + scanner->indent_count + 4, scanner->bracket_stack, scanner->bracket_count+1);
-//     buffer[scanner->indent_count + 5 + scanner->bracket_count] = scanner->bracket_count;
+//     memcpy(buffer + scanner->indent_count + 4, scanner->bracket_stack,
+//     scanner->bracket_count+1); buffer[scanner->indent_count + 5 +
+//     scanner->bracket_count] = scanner->bracket_count;
 //     // fprintf(stderr, "serialize\n");
 //     return size;
 // }
@@ -359,7 +428,8 @@ bool tree_sitter_tampio_external_scanner_scan(void *p, TSLexer *lexer,
     Scanner *s = (Scanner *)p;
 
     // fprintf(stderr, "indent_count=%d, pending_dedents=%d\n", s->indent_count,
-    // s->pending_dedents); fflush(stderr);
+    //         s->pending_dedents);
+    // fflush(stderr);
 
     // fprintf(stderr, "%c", lexer->lookahead);
     if (s->pending_dedents > 1) {
@@ -370,6 +440,24 @@ bool tree_sitter_tampio_external_scanner_scan(void *p, TSLexer *lexer,
         s->pending_dedents = 0;
         lexer->advance(lexer, false);
         lexer->result_symbol = NEWLINE;
+        return true;
+    }
+    uint8_t q = s->quote;
+    if (q) {
+        if (quote_id(lexer->lookahead) == q) {
+            s->quote = 0;
+            lexer->advance(lexer, false);
+            lexer->result_symbol = CLOSING_QUOTE;
+            return true;
+        }
+
+        // fprintf(stderr, "%d %d, %d %d\n", quote_id(lexer->lookahead), q,
+        // '\n', lexer->eof(lexer)); fflush(stderr);
+        while (quote_id(lexer->lookahead) != q && lexer->lookahead != '\n' &&
+               !lexer->eof(lexer)) {
+            lexer->advance(lexer, false);
+        }
+        lexer->result_symbol = STRING_BODY;
         return true;
     }
     if (lexer->lookahead == '-') {
@@ -459,5 +547,29 @@ bool tree_sitter_tampio_external_scanner_scan(void *p, TSLexer *lexer,
         return true;
     }
 
+    uint8_t b = bracket_id(lexer->lookahead);
+    if (b) {
+        if (!(b & 1)) {
+            push_bracket(s, b);
+            lexer->advance(lexer, false);
+            lexer->result_symbol = OPENING_BRACKET;
+            return true;
+        } else {
+            if (top_bracket(s) == (b ^ 1)) {
+                pop_bracket(s);
+                lexer->advance(lexer, false);
+                lexer->result_symbol = CLOSING_BRACKET;
+                return true;
+            }
+        }
+    }
+
+    q = quote_id(lexer->lookahead);
+    if (q) {
+        s->quote = q;
+        lexer->advance(lexer, false);
+        lexer->result_symbol = OPENING_QUOTE;
+        return true;
+    }
     return false;
 }

@@ -62,11 +62,19 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
         {
           "type": "account_list",
+          "named": true
+        },
+        {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
           "named": true
         }
       ]
@@ -169,9 +177,17 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
+          "named": true
+        },
         {
           "type": "statement_list",
           "named": true
@@ -184,9 +200,17 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
+          "named": true
+        },
         {
           "type": "statement_list_D",
           "named": true
@@ -212,6 +236,21 @@
         },
         {
           "type": "number",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "budget",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "entry",
           "named": true
         }
       ]
@@ -246,9 +285,17 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
+          "named": true
+        },
         {
           "type": "statement_list_D",
           "named": true
@@ -334,11 +381,19 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
         {
           "type": "amounts",
+          "named": true
+        },
+        {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
           "named": true
         }
       ]
@@ -388,9 +443,17 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
+          "named": true
+        },
         {
           "type": "statement_list",
           "named": true
@@ -412,6 +475,10 @@
       "types": [
         {
           "type": "account_map",
+          "named": true
+        },
+        {
+          "type": "budget",
           "named": true
         },
         {
@@ -564,6 +631,29 @@
     }
   },
   {
+    "type": "string",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "closing_quote",
+          "named": true
+        },
+        {
+          "type": "opening_quote",
+          "named": true
+        },
+        {
+          "type": "string_body",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "transaction",
     "named": true,
     "fields": {},
@@ -591,11 +681,19 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
         {
+          "type": "closing_bracket",
+          "named": true
+        },
+        {
           "type": "entries",
+          "named": true
+        },
+        {
+          "type": "opening_bracket",
           "named": true
         }
       ]
@@ -623,14 +721,6 @@
         }
       ]
     }
-  },
-  {
-    "type": "(",
-    "named": false
-  },
-  {
-    "type": ")",
-    "named": false
   },
   {
     "type": "+",
@@ -693,15 +783,15 @@
     "named": false
   },
   {
-    "type": "[",
-    "named": false
-  },
-  {
-    "type": "]",
-    "named": false
-  },
-  {
     "type": "auto",
+    "named": true
+  },
+  {
+    "type": "closing_bracket",
+    "named": true
+  },
+  {
+    "type": "closing_quote",
     "named": true
   },
   {
@@ -734,20 +824,20 @@
     "named": true
   },
   {
+    "type": "opening_bracket",
+    "named": true
+  },
+  {
+    "type": "opening_quote",
+    "named": true
+  },
+  {
     "type": "section_name",
     "named": true
   },
   {
-    "type": "string",
+    "type": "string_body",
     "named": true
-  },
-  {
-    "type": "{",
-    "named": false
-  },
-  {
-    "type": "}",
-    "named": false
   },
   {
     "type": "§",
